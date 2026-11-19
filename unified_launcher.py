@@ -157,6 +157,19 @@ def scan_gog_games() -> list[dict]:
 
     return games
 
-    
+def get_all_games() -> list[dict]:
+    all_games = scan_steam_games + scan_gog_games()
+    return sorted(all_games, key=lambda g: g["title"].lower())
+
+# Launcher
+
+def launch_game(game: dict) -> None:
+    if game["platform"] == "Steam":
+        os.startfile(f"steam://rungameid/{game['launch_target']}")
+    elif game["platform"] == "GOG":
+        subprocess.Popen([game["launch_target"]], cwd=game["install_dir"])
+
+
+
 
 
