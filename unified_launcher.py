@@ -24,7 +24,7 @@ def find_steam_art(steam_path: Path, appid: str) -> tuple[str | None, str | None
     banner_path = None
     icon_path = None
 
-    # 1. Check direct root-level legacy paths first
+    # Checking  direct root-level legacy paths first
     direct_banners = [
         cache_dir / f"{appid}_library_600x900.jpg",
         cache_dir / f"{appid}_library_capsule.jpg",
@@ -36,7 +36,7 @@ def find_steam_art(steam_path: Path, appid: str) -> tuple[str | None, str | None
             banner_path = str(candidate)
             break
 
-    # 2. Search inside appid subfolder (handles both direct and hashed subdirectories)
+    # checking inside appid subfolder (handles both direct and hashed subdirectories)
     app_cache_dir = cache_dir / appid
     if not banner_path and app_cache_dir.exists():
         preferred_names = (
@@ -51,7 +51,7 @@ def find_steam_art(steam_path: Path, appid: str) -> tuple[str | None, str | None
                 banner_path = str(matches[0])
                 break
 
-    # 3. Check icons (root and recursive appid subfolder)
+    # checking icons (root and recursive appid subfolder)
     direct_icons = [
         cache_dir / f"{appid}_icon.jpg",
         cache_dir / f"{appid}_icon.png",
@@ -201,6 +201,8 @@ class UnifiedLauncherApp:
     def __init__(self, root: tk.Tk, games: list[dict]):
         self.root = root
         self.all_games = games
+        self.current_games = games
+        self.current_columns = self.COLUMNS
         self.image_refs: list[ImageTk.PhotoImage] = [] # storing references so GC doesn't clear the images
 
         self.root.title("Unified Game Launcher")
@@ -266,6 +268,7 @@ class UnifiedLauncherApp:
 
         self.canvas.pack(side="left", fill="both", expand=True)
         scrollbar.pack(side="right", fill="y")
+        self.canvas.bind("<Configure>", self._on_canvas_resize)
 
         self.canvas.bind_all(
             "<MouseWheel>",
@@ -297,6 +300,16 @@ class UnifiedLauncherApp:
         filtered = [g for g in self.all_games if query in g["title"].lower()]
         self.render_games(filtered)
 
+    def _on_canvas_resize(self, event: tk.Event) -> None:
+        card_slot_width = self.CARD_WIDTH + 32
+        available_width = max(event.width - 32, card_slot_width)
+        new_columns = max(1, available_width // card_slot_width)
+
+        if new_columns != self.current_columns:
+            self.current_columns = new_columns
+            self.render_games(self.current_games)
+
+
     def render_games(self, games: list[dict]) -> None:
         for widget in self.grid_frame.winfo_children():
             widget.destroy()
@@ -314,8 +327,8 @@ class UnifiedLauncherApp:
             return
 
         for idx, game in enumerate(games):
-            row = idx // self.COLUMNS
-            col = idx % self.COLUMNS
+            row = idx // self.current_columns
+            col = idx % self.current_columns
 
             card = tk.Frame(
                 self.grid_frame,
