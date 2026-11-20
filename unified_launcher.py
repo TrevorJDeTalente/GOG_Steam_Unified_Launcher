@@ -24,29 +24,52 @@ def find_steam_art(steam_path: Path, appid: str) -> tuple[str | None, str | None
     banner_path = None
     icon_path = None
 
-    banner_candidates = [
+    # 1. Check direct root-level legacy paths first
+    direct_banners = [
         cache_dir / f"{appid}_library_600x900.jpg",
+        cache_dir / f"{appid}_library_capsule.jpg",
         cache_dir / f"{appid}_header.jpg",
-        cache_dir / appid / "library_600x900.jpg",
-        cache_dir / appid / "header.jpg",
+        cache_dir / f"{appid}_library_hero.jpg",
     ]
-
-    for candidate in banner_candidates:
+    for candidate in direct_banners:
         if candidate.exists():
             banner_path = str(candidate)
             break
 
-    icon_candidates = [
-        cache_dir / f"{appid}_icon.jpg",
-        cache_dir / appid / "icon.jpg",
-    ]
+    # 2. Search inside appid subfolder (handles both direct and hashed subdirectories)
+    app_cache_dir = cache_dir / appid
+    if not banner_path and app_cache_dir.exists():
+        preferred_names = (
+            "library_600x900.jpg",
+            "library_capsule.jpg",
+            "header.jpg",
+            "library_hero.jpg",
+        )
+        for filename in preferred_names:
+            matches = list(app_cache_dir.rglob(filename))
+            if matches:
+                banner_path = str(matches[0])
+                break
 
-    for candidate in icon_candidates:
+    # 3. Check icons (root and recursive appid subfolder)
+    direct_icons = [
+        cache_dir / f"{appid}_icon.jpg",
+        cache_dir / f"{appid}_icon.png",
+    ]
+    for candidate in direct_icons:
         if candidate.exists():
             icon_path = str(candidate)
             break
 
+    if not icon_path and app_cache_dir.exists():
+        for filename in ("icon.jpg", "icon.png", "logo.png"):
+            matches = list(app_cache_dir.rglob(filename))
+            if matches:
+                icon_path = str(matches[0])
+                break
+
     return banner_path, icon_path
+
 
 def find_gog_art(install_dir: str, game_id: str) -> tuple[str | None, str | None]:
     folder = Path(install_dir)
@@ -255,7 +278,7 @@ class UnifiedLauncherApp:
             return None
 
         try:
-            with image.open(art_path) as img:
+            with Image.open(art_path) as img:
                 img = img.convert("RGB")
                 fitted = ImageOps.fit(
                     img,
