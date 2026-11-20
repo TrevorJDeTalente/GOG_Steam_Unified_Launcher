@@ -106,7 +106,7 @@ def scan_steam_games() -> list[dict]:
                         continue
 
                 install_dir = (
-                    str(steamapps / "common" / install_folder)
+                    str(steam_apps / "common" / install_folder)
                         if install_folder
                         else ""
                 )
@@ -116,7 +116,7 @@ def scan_steam_games() -> list[dict]:
                 games.append({
                     "title" : title,
                     "platform" : "Steam",
-                    "launch_targer" : appid,
+                    "launch_target" : appid,
                     "install_dir" : install_dir,
                     "banner_path" : banner,
                     "icon_path" : icon
@@ -133,7 +133,7 @@ def scan_gog_games() -> list[dict]:
 
             for i in range(subkey_count):
                 game_id = winreg.EnumKey(games_key, i)
-                with winreg.OpenKey(games_key, game_id) as games_key:
+                with winreg.OpenKey(games_key, game_id) as game_key:
                     try:
                         title, _ = winreg.QueryValueEx(game_key, "gameName")
                         exe_path, _ = winreg.QueryValueEx(game_key, "exe")
@@ -158,7 +158,7 @@ def scan_gog_games() -> list[dict]:
     return games
 
 def get_all_games() -> list[dict]:
-    all_games = scan_steam_games + scan_gog_games()
+    all_games = scan_steam_games() + scan_gog_games()
     return sorted(all_games, key=lambda g: g["title"].lower())
 
 # Launcher
@@ -184,7 +184,6 @@ class UnifiedLauncherApp:
         self.root.geometry("860x680")
         self.root.configure(bg="#121418")
 
-        self.build_top_bar()
         self._build_top_bar()
         self._build_scrollable_grid()
         self.render_games(self.all_games)
@@ -246,7 +245,7 @@ class UnifiedLauncherApp:
         scrollbar.pack(side="right", fill="y")
 
         self.canvas.bind_all(
-            "<Mousewheel>",
+            "<MouseWheel>",
             lambda e: self.canvas.yview_scroll(int(-1 * (e.delta / 120)), "units"),           
         )
     
@@ -281,12 +280,12 @@ class UnifiedLauncherApp:
         self.image_refs.clear()
 
         if not games:
-            empty_label = (
+            empty_label = tk.Label(
                 self.grid_frame,
-                text=="No matching games found.",
-                font==("Segoe UI", 12),
-                fg=="#9aa5b4",
-                bg=="#121418",
+                text="No matching games found.",
+                font=("Segoe UI", 12),
+                fg="#9aa5b4",
+                bg="#121418",
             )
             empty_label.grid(row=0, column=0, padx=20, pady=20)
             return
