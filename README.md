@@ -7,7 +7,8 @@ A lightweight, standalone Windows desktop application built in Python that autom
 I built this utility to solve my own daily friction: a fast, offline-first launcher that reads directly from my Windows system files and gets me into any game with a single click. As an almost daily user of both GOG and Steam, it meant constantly switching between different desktop clients. Other solutions seemed to tend to require linking online accounts or use of web APIs.
 
 
-# Demonstration (assets/launchergif.gif)
+# ![Unified Game Launcher Demo](assets/demo.gif)
+
 
 
 ---
