@@ -8,6 +8,7 @@ I built this utility to solve my own daily friction: a fast, offline-first launc
 
 
 # ![Unified Game Launcher Demo](assets/demo.gif)
+<img width="800" height="450" alt="launchergif" src="https://github.com/user-attachments/assets/94d3ca2d-c2ca-48ae-ad9b-650614f6e7ce" />
 
 
 
