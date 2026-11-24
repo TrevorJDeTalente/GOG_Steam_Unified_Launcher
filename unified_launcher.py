@@ -1,5 +1,6 @@
 import winreg
 import os
+import json
 import subprocess
 import tkinter as tk
 from pathlib import Path
@@ -90,6 +91,17 @@ def find_gog_art(install_dir: str, game_id: str) -> tuple[str | None, str | None
                 break
     return banner_path, icon_path
 
+def find_epic_art(install_dir: str):
+    folder = Path(install_dir)
+    banner_path = None
+    icon_path = None
+
+    if folder.exists():
+        for ico_file in folder.glob("*.ico"):
+            icon_path = str(ico_file)
+            break
+    return banner_path, icon_path
+
 # Scanners for installed games
 
 def scan_steam_games() -> list[dict]:
@@ -178,6 +190,59 @@ def scan_gog_games() -> list[dict]:
     except FileNotFoundError:
         return games
 
+    return games
+
+def scan_epic_games():
+    games = []
+    manifests_dir = Path(r"C:\ProgramData\Epic\EpicGamesLauncher\Data\Manifests")
+
+    if not manifests_dir.exists():
+        return games
+
+    for item_file in manifests_dir.glob("*.item"):
+        try:
+            data = json.loads(item_file.read_text(encoding="utf-8", errors="ignore"))
+        except Exception:
+            continue
+        
+        title = data.get("DisplayName")
+        install_dir = data.get("InstallLocation", "")
+        launch_exe = data.get("LaunchExecutable", "")
+        namespace = data.get("CatalogNamespace")
+        item_id = data.get("CatalogItemId")
+        app_name = data.get("AppName")
+
+        # Skipping Unreal Engine editor installations or incomplete manifests
+
+        if not title or install_dir or launch_exe:
+            continue
+        if title.startswith("Unreal Engine"):
+            continue
+    
+        full_exe = Path(install_dir) / launch_exe
+        if not full_exe.exists():
+            continue
+
+        # Building Epic's native launch URI (fallback to direct .exe if IDs aren't found)
+
+        if namespace and item_id and app_name:
+            launch_target = (
+                f"com.epicgames.launcher://apps/"
+                f"{namespace}%3A{item_id}%3A{app_name}?action=launch&silent=true"
+            )
+        else:
+            launch_target = str(full_exe)
+
+        banner, icon = find_epic_art(install_dir)
+
+        games.append({
+            "title" : title,
+            "platform": "Epic",
+            "launch_target" : launch_target,
+            "install_dir" : install_dir,
+            "banner_path" : banner,
+            "icon_path" : icon
+        })
     return games
 
 def get_all_games() -> list[dict]:
