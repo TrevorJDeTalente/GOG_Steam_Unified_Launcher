@@ -214,7 +214,7 @@ def scan_epic_games():
 
         # Skipping Unreal Engine editor installations or incomplete manifests
 
-        if not title or install_dir or launch_exe:
+        if not title or not install_dir or not launch_exe:
             continue
         if title.startswith("Unreal Engine"):
             continue
@@ -246,7 +246,7 @@ def scan_epic_games():
     return games
 
 def get_all_games() -> list[dict]:
-    all_games = scan_steam_games() + scan_gog_games()
+    all_games = scan_steam_games() + scan_gog_games() + scan_epic_games()
     return sorted(all_games, key=lambda g: g["title"].lower())
 
 # Launcher
@@ -254,6 +254,11 @@ def get_all_games() -> list[dict]:
 def launch_game(game: dict) -> None:
     if game["platform"] == "Steam":
         os.startfile(f"steam://rungameid/{game['launch_target']}")
+    elif game["platform"] == "Epic":
+        if game["launch_target"].startswith("com.epicgames.launcher://"):
+            os.startfile(game["launch_target"])
+        else:
+            subprocess.Popen([game["launch_target"]], cwd=game['install_dir'])
     elif game["platform"] == "GOG":
         subprocess.Popen([game["launch_target"]], cwd=game["install_dir"])
 
@@ -263,36 +268,65 @@ class UnifiedLauncherApp:
     CARD_HEIGHT = 270
     COLUMNS = 4
 
+    BADGE_COLORS = {
+        "Steam" : "#3b82f6",
+        "GOG" : "#a855f7",
+        "Epic" : "#f59e0b"
+    }
+
     def __init__(self, root: tk.Tk, games: list[dict]):
         self.root = root
         self.all_games = games
         self.current_games = games
         self.current_columns = self.COLUMNS
-        self.image_refs: list[ImageTk.PhotoImage] = [] # storing references so GC doesn't clear the images
+        self.active_platform = "All"
+        self.filter_buttons: dict[str, tk.Button] = {}
+        self.image_refs: list[ImageTk.PhotoImage] = []
 
         self.root.title("Unified Game Launcher")
-        self.root.geometry("860x680")
+        self.root.geometry("880x700")
         self.root.configure(bg="#121418")
 
         self._build_top_bar()
         self._build_scrollable_grid()
-        self.render_games(self.all_games)
+        self._apply_filters()
 
     def _build_top_bar(self) -> None:
         top_bar = tk.Frame(self.root, bg="#1b1f26", pady=12, padx=16)
         top_bar.pack(fill="x")
 
-        header = tk.Label(
+        self.header_label = tk.Label(
             top_bar,
             text=f"My Library ({len(self.all_games)})",
             font=("Segoe UI", 14, "bold"),
             fg="#ffffff",
             bg="#1b1f26",
         )
-        header.pack(side="left")
+        self.header_label.pack(side="left", padx=(0, 16))
+
+        # Filters for platforms
+
+        filter_frame = tk.Frame(top_bar, bg="#1b1f26")
+        filter_frame.pack(side="left")
+
+        for platform in ("All", "Steam", "GOG", "Epic"):
+            btn = tk.Button(
+                filter_frame,
+                text=platform,
+                font=("Segoe UI", 9, "bold"),
+                relief="flat",
+                padx=12,
+                pady=4,
+                cursor="hand2",
+                command=lambda p=platform: self._set_platform_filter(p),
+            )
+            btn.pack(side="left", padx=3)
+            self.filter_buttons[platform] = btn
+
+        self._update_filter_button_styles()
 
         self.search_var = tk.StringVar()
-        self.search_var.trace_add("write", self._on_search)
+        self.search_var.trace_add("write", lambda *args: self._apply_filters())
 
         search_entry = tk.Entry(
             top_bar,
@@ -314,6 +348,32 @@ class UnifiedLauncherApp:
             bg="#1b1f26",
         )
         search_label.pack(side="right")
+
+    def _set_platform_filter(self, platform: str):
+        self.active_platform = platform
+        self._update_filter_button_styles()
+        self._apply_filters()
+
+    def _update_filter_button_styles(self):
+        for platform, btn in self.filter_buttons.items():
+            if platform == self.active_platform:
+                btn.configure(bg="#3b82f6", fg="#ffffff", activebackground="#2563eb")
+            else:
+                btn.configure(bg="#262b35", fg="#9aa5b4", activebackground="#323946")
+
+    def _apply_filters(self):
+        query = self.search_var.get().strip().lower()
+        filtered = self.all_games
+
+        if self.active_platform != "All":
+            filtered = [g for g in filtered if g["platform"] == self.active_platform]
+        if query:
+            filtered = [g for g in filtered if query in g["title"].lower()]
+        
+        self.current_games = filtered
+        self.header_label.configure(text=f"My Library ({len(filtered)})")
+        self.canvas.yview_moveto(0)
+        self.render_games(self.current_games)
 
     def _build_scrollable_grid(self) -> None:
         container = tk.Frame(self.root, bg="#121418")
