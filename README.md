@@ -1,6 +1,6 @@
 # Unified Game Launcher
 
-A lightweight, standalone Windows desktop application built in Python that automatically detects and unifies locally installed Steam and GOG games into a single, searchable interface.
+A lightweight, standalone Windows desktop application built in Python that automatically detects and unifies locally installed Steam, GOG and Epic(NEW) into a single, searchable interface.
 
 # Why I Built This
 
@@ -18,7 +18,7 @@ I built this utility to solve my own daily friction: a fast, offline-first launc
 
 - **Automatic Library Discovery:** Scans the Windows Registry and local configuration files to detect installed Steam and GOG games automatically.
 - **Multi-Drive Steam Support:** Parses Valve's `libraryfolders.vdf` to locate games installed across secondary hard drives and SSDs.
-- **Local Artwork & Icon Extraction:** Pulls cached `600x900` vertical cover banners, headers, and `.ico` files directly from Steam's `librarycache`, GOG Galaxy's `webcache`, and game installation folders.
+- **Local Artwork & Icon Extraction:** Pulls cached `600x900` vertical cover banners, headers, and `.ico` files directly from Steam's `librarycache`, GOG Galaxy's `webcache`, and Epic's game installation folders.
 - **Instant Live Search:** Filters your combined game library in real time as you type.
 - **One-Click Launching:** Boots Steam titles cleanly via the `steam://rungameid/` protocol (preserving cloud saves and overlays) and launches GOG titles directly from their working directories.
 
@@ -68,15 +68,13 @@ Instead of relying on third-party web APIs, this launcher interacts directly wit
 - **Language:** Python 3
 - **GUI Framework:** Tkinter
 - **Image Processing:** Pillow (`PIL`)
-- **System Integration:** `winreg`, `pathlib`, `subprocess`, `os`
+- **System Integration:** `winreg`, `pathlib`, `subprocess`, `os`, 'json'
 - **Packaging:** PyInstaller
 
 ---
 
 # Planned Future Improvements
 
-- Platform filter toggles (`All`, `Steam`, `GOG`)
-- Support for Epic Games Store and custom `.exe` shortcuts
 - Favorites pinning and recently played sorting
 
 ---
